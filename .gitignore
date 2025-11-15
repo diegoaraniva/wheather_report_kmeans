@@ -1,5 +1,8 @@
 # Variables de entorno - NO SUBIR A GIT
 .env
+.env.local
+.env.*.local
+*.env
 
 # Archivos de Python
 __pycache__/
@@ -10,11 +13,13 @@ __pycache__/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+*.ipynb_checkpoints/
 
 # Entornos virtuales
 venv/
 env/
 ENV/
+.venv/
 
 # IDE
 .vscode/
@@ -23,3 +28,17 @@ ENV/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Bases de datos
+*.db
+*.sqlite
+*.sqlite3
+db/
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
