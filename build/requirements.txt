@@ -6,3 +6,4 @@ scikit-learn
 matplotlib
 mlxtend
 python-dotenv
+umap-learn
