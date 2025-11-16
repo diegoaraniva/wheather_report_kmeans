@@ -85,83 +85,57 @@ with st.expander("📊 Ver información inicial del dataset"):
 # Limpieza y preparación de datos para ML
 st.header("🧹 Limpieza y Preparación de Datos")
 
-with st.spinner('Limpiando datos...'):\n    # Renombrar columnas al español
-column_mapping = {
-    'date': 'fecha',
-    'tavg': 'temp_promedio',
-    'tmin': 'temp_minima',
-    'tmax': 'temp_maxima',
-    'prcp': 'precipitacion',
-    'snow': 'nieve',
-    'wdir': 'direccion_viento',
-    'wspd': 'velocidad_viento',
-    'wpgt': 'rafaga_viento',
-    'pres': 'presion_atmosferica',
-    'tsun': 'horas_sol'
-}
+with st.spinner('Limpiando datos...'):
+    # Renombrar columnas al español
+    column_mapping = {
+        'date': 'fecha',
+        'tavg': 'temp_promedio',
+        'tmin': 'temp_minima',
+        'tmax': 'temp_maxima',
+        'prcp': 'precipitacion',
+        'snow': 'nieve',
+        'wdir': 'direccion_viento',
+        'wspd': 'velocidad_viento',
+        'wpgt': 'rafaga_viento',
+        'pres': 'presion_atmosferica',
+        'tsun': 'horas_sol'
+    }
 
-df = df.rename(columns=column_mapping)
+    df = df.rename(columns=column_mapping)
 
-print("Columnas renombradas:")
-print(df.columns.tolist())
+    # Crear una copia para no modificar los datos originales
+    df_clean = df.copy()
 
-# Crear una copia para no modificar los datos originales
-df_clean = df.copy()
+    # 1. Manejo de valores nulos
+    # 2. Eliminar columnas con demasiados valores nulos (>50%)
+    threshold = len(df_clean) * 0.5
+    df_clean = df_clean.dropna(thresh=threshold, axis=1)
 
-# 1. Manejo de valores nulos
-print("Valores nulos por columna:")
-print(df_clean.isnull().sum())
+    # 3. Rellenar valores nulos en columnas numéricas con la mediana
+    numeric_columns = df_clean.select_dtypes(include=[np.number]).columns
+    for col in numeric_columns:
+        if df_clean[col].isnull().sum() > 0:
+            df_clean[col] = df_clean[col].fillna(df_clean[col].median())
 
-# 2. Eliminar columnas con demasiados valores nulos (>50%)
-threshold = len(df_clean) * 0.5
-df_clean = df_clean.dropna(thresh=threshold, axis=1)
+    # 4. Eliminar filas con valores nulos restantes
+    df_clean = df_clean.dropna()
 
-# 3. Rellenar valores nulos en columnas numéricas con la mediana
-numeric_columns = df_clean.select_dtypes(include=[np.number]).columns
-for col in numeric_columns:
-    if df_clean[col].isnull().sum() > 0:
-        df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+    # 5. Eliminar duplicados basados en la fecha
+    df_clean = df_clean.drop_duplicates(subset=['fecha'], keep='first')
 
-# 4. Eliminar filas con valores nulos restantes
-df_clean = df_clean.dropna()
+    # 6. Ordenar por fecha
+    df_clean = df_clean.sort_values('fecha').reset_index(drop=True)
 
-# 5. Eliminar duplicados basados en la fecha
-df_clean = df_clean.drop_duplicates(subset=['fecha'], keep='first')
+    # 7. Verificar outliers usando IQR
+    def detect_outliers_iqr(data, column):
+        Q1 = data[column].quantile(0.25)
+        Q3 = data[column].quantile(0.75)
+        IQR = Q3 - Q1
+        lower_bound = Q1 - 1.5 * IQR
+        upper_bound = Q3 + 1.5 * IQR
+        outliers = data[(data[column] < lower_bound) | (data[column] > upper_bound)]
+        return len(outliers)
 
-# 6. Ordenar por fecha
-df_clean = df_clean.sort_values('fecha').reset_index(drop=True)
-
-# 7. Verificar outliers usando IQR
-def detect_outliers_iqr(data, column):
-    Q1 = data[column].quantile(0.25)
-    Q3 = data[column].quantile(0.75)
-    IQR = Q3 - Q1
-    lower_bound = Q1 - 1.5 * IQR
-    upper_bound = Q3 + 1.5 * IQR
-    outliers = data[(data[column] < lower_bound) | (data[column] > upper_bound)]
-    return len(outliers)
-
-print("\nOutliers detectados por columna:")
-for col in numeric_columns:
-    if col in df_clean.columns:
-        n_outliers = detect_outliers_iqr(df_clean, col)
-        print(f"{col}: {n_outliers} outliers")
-
-# 8. Mostrar columnas disponibles después de la limpieza
-print("\nColumnas disponibles después de limpieza:")
-print(df_clean.columns.tolist())
-
-# 9. Información del DataFrame limpio
-print("\nInformación del DataFrame limpio:")
-print(df_clean.info())
-
-# 10. Resumen final
-    print(f"\nDatos originales: {len(df)} filas")
-    print(f"Datos limpios: {len(df_clean)} filas")
-    print(f"Columnas finales: {df_clean.shape[1]}")
-    print("\nPrimeras filas del dataset limpio:")
-    print(df_clean.head())
-    
     st.success(f"✓ Datos limpios: {len(df_clean)} filas, {df_clean.shape[1]} columnas")
     
     with st.expander("📊 Ver resumen de limpieza"):
